@@ -4,14 +4,19 @@
  * Author: Emilio Francesquini - francesquini@ic.unicamp.br
  */
 
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-#include <mpi.h>
+
+#include <sys/time.h>
+#include <time.h>
 
 int min_distance;
 int nb_towns;
+int world_rank;
+int world_size;
 
 typedef struct {
   int to_town;
@@ -88,7 +93,11 @@ void init_tsp() {
 
   min_distance = INT_MAX;
 
-  st = scanf("%u", &nb_towns);
+  if (world_rank == 0) st = scanf("%u", &nb_towns);
+
+  MPI_Bcast(&nb_towns, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&st, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
   if (st != 1) exit(1);
 
   d_matrix = (d_info **)malloc(sizeof(d_info *) * nb_towns);
@@ -99,10 +108,24 @@ void init_tsp() {
   x = (int *)malloc(sizeof(int) * nb_towns);
   y = (int *)malloc(sizeof(int) * nb_towns);
 
-  for (i = 0; i < nb_towns; i++) {
-    st = scanf("%u %u", x + i, y + i);
-    if (st != 2) exit(1);
+  int quit = 0;
+
+  if (world_rank == 0) {
+    for (i = 0; i < nb_towns; i++) {
+      st = scanf("%u %u", x + i, y + i);
+
+      if (st != 2) {
+        quit = 1;
+        break;
+      };
+    }
   }
+
+  MPI_Bcast(&quit, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(x, nb_towns, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(y, nb_towns, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (quit) exit(1);
 
   greedy_shortest_first_heuristic(x, y);
 
@@ -110,15 +133,46 @@ void init_tsp() {
   free(y);
 }
 
+void printAllDataToLogFile() {
+  char filename[100];
+  sprintf(filename, "log_%d.txt", world_rank);
+  FILE *out = fopen(filename, "w");
+
+  fprintf(out, "world_rank: %d\n", world_rank);
+  fprintf(out, "world_size: %d\n", world_size);
+  fprintf(out, "nb_towns: %d\n", nb_towns);
+
+  for (int i = 0; i < nb_towns; i++) {
+    for (int j = 0; j < nb_towns; j++) {
+      fprintf(out, "%d ", d_matrix[i][j].to_town);
+      fprintf(out, "%d ", d_matrix[i][j].dist);
+    }
+    fprintf(out, "\n");
+  }
+
+  fclose(out);
+}
+
 int run_tsp() {
   int i, *path;
 
   init_tsp();
 
+  min_distance = INT_MAX;
   path = (int *)malloc(sizeof(int) * nb_towns);
-  path[0] = 0;
 
-  tsp(1, 0, path);
+  path[0] = 0;
+  for (int i = world_rank + 1; i < nb_towns; i += world_size) {
+    path[1] = i;
+
+    tsp(2, dist_to_origin[i], path);
+  }
+
+  int global_min_distance;
+  MPI_Allreduce(&min_distance, &global_min_distance, 1, MPI_INT, MPI_MIN,
+                MPI_COMM_WORLD);
+
+  if (world_rank == 0) printf("%d\n", global_min_distance);
 
   free(path);
   for (i = 0; i < nb_towns; i++) free(d_matrix[i]);
@@ -128,43 +182,36 @@ int run_tsp() {
 }
 
 int main(int argc, char **argv) {
+  struct timeval start, end;
+  double totalTime;
+
+  gettimeofday(&start, NULL);
+
   MPI_Init(&argc, &argv);
 
-  int world_rank, world_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   int num_instances, st;
 
-  if (world_rank == 0) {
-    st = scanf("%u", &num_instances);
-    if (st != 1) exit(1);
-  }
+  if (world_rank == 0) st = scanf("%u", &num_instances);
 
   MPI_Bcast(&num_instances, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&st, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  printf("Hello from %d of %d: %d instances\n", world_rank, world_size,
-         num_instances);
+  if (st != 1) exit(1);
 
-  // ! maybe this should be ceilling or something due problems
-  // ! like 15 div 8 = 1.875
-  int range = (nb_towns - 1) / world_size;  // -1 beacause 0 is fixed
-  int start = world_rank * range + 1;
-  int end = (world_rank == world_size - 1) ? nb_towns - 1 : start + range - 1;
-
-  while (num_instances-- > 0) {
-    int min_distance_local = run_tsp(start, end);
-    int min_distance_global;
-
-    MPI_Reduce(&min_distance_local, &min_distance_global, 1, MPI_INT, MPI_MIN,
-               0, MPI_COMM_WORLD);
-
-    if (world_rank == 0) {
-      printf("%d\n", min_distance_global);
-    }
-  }
+  while (num_instances-- > 0) run_tsp();
 
   MPI_Finalize();
+
+  gettimeofday(&end, NULL);
+
+  if (world_rank == 0) {
+    totalTime =
+        (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    printf("TotalTime: %lf\n", totalTime);
+  }
 
   return 0;
 }

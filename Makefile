@@ -22,7 +22,7 @@ run:
 	./$(EXEC1) < tsp.in
 
 run2:
-	mpirun -np 8 $(EXEC2) < tsp.in
+	mpirun -np 4 $(EXEC2) < tsp.in
 
 clean:
 	$(RM) $(EXEC1).o $(EXEC1) $(EXEC2).o $(EXEC2)
