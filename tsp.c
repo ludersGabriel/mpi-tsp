@@ -139,7 +139,14 @@ int run_tsp() {
   path = (int *)malloc(sizeof(int) * nb_towns);
   path[0] = 0;
 
+  struct timeval start, end;
+
+  gettimeofday(&start, NULL);
   tsp(1, 0, path);
+  gettimeofday(&end, NULL);
+
+  parallelTime +=
+      (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
 
   free(path);
   for (i = 0; i < nb_towns; i++) free(d_matrix[i]);
@@ -151,6 +158,7 @@ int run_tsp() {
 int main(int argc, char **argv) {
   struct timeval start, end;
   double elapsedTime, pureSequentialTime;
+  parallelTime = 0.0;
 
   gettimeofday(&start, NULL);
 
@@ -158,13 +166,7 @@ int main(int argc, char **argv) {
   st = scanf("%u", &num_instances);
   if (st != 1) exit(1);
 
-  struct timeval tspStart, tspEnd;
-  gettimeofday(&tspStart, NULL);
   while (num_instances-- > 0) printf("%d\n", run_tsp());
-  gettimeofday(&tspEnd, NULL);
-
-  parallelTime = (tspEnd.tv_sec - tspStart.tv_sec) +
-                 (tspEnd.tv_usec - tspStart.tv_usec) / 1000000.0;
 
   gettimeofday(&end, NULL);
   elapsedTime =
@@ -172,9 +174,9 @@ int main(int argc, char **argv) {
 
   pureSequentialTime = elapsedTime - parallelTime;
 
-  printf("TotalTime: %lf\n", elapsedTime);
-  printf("SeqTime: %lf\n", pureSequentialTime);
-  printf("PrallelTime: %lf\n", parallelTime);
+  printf("Parallel: %lf\n", parallelTime);
+  printf("Total: %lf\n", elapsedTime);
+  printf("Pure_seq: %lf\n", pureSequentialTime);
 
   return 0;
 }

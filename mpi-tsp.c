@@ -25,6 +25,7 @@ typedef struct {
 
 d_info **d_matrix;
 int *dist_to_origin;
+double parallelTime;
 
 int present(int town, int depth, int *path) {
   int i;
@@ -162,11 +163,19 @@ int run_tsp() {
   path = (int *)malloc(sizeof(int) * nb_towns);
 
   path[0] = 0;
+
+  struct timeval start, end;
+
+  gettimeofday(&start, NULL);
   for (int i = world_rank + 1; i < nb_towns; i += world_size) {
     path[1] = i;
 
     tsp(2, dist_to_origin[i], path);
   }
+  gettimeofday(&end, NULL);
+
+  parallelTime +=
+      (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
 
   int global_min_distance;
   MPI_Allreduce(&min_distance, &global_min_distance, 1, MPI_INT, MPI_MIN,
@@ -184,6 +193,7 @@ int run_tsp() {
 int main(int argc, char **argv) {
   struct timeval start, end;
   double totalTime;
+  parallelTime = 0.0;
 
   gettimeofday(&start, NULL);
 
@@ -210,7 +220,9 @@ int main(int argc, char **argv) {
   if (world_rank == 0) {
     totalTime =
         (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
-    printf("TotalTime: %lf\n", totalTime);
+    printf("Parallel: %lf\n", parallelTime);
+    printf("Total: %lf\n", totalTime);
+    printf("Pure_seq: 0\n");
   }
 
   return 0;
