@@ -9,7 +9,7 @@ echo "Size,Seq,2,4,8" > output/stddev_times.csv
 echo "Size,Seq,2,4,8" > output/parallel_times.csv
 echo "Size,Seq,2,4,8" > output/pure_seq.csv
 
-for size in {14..15}; do
+for size in {14..19}; do
     # Initializing an array for storing the results
     declare -A avg_results
     declare -A stddev_results
@@ -24,6 +24,8 @@ for size in {14..15}; do
         else
             program="mpirun -np $cores mpi-tsp"
         fi
+
+        echo "running '$program' $size $cores"
 
         # echo "$cores" > $DIR/temp.in
         # tail -n +2 $DIR/$size.in >> $DIR/temp.in
@@ -92,6 +94,7 @@ for size in {14..15}; do
         unset all_times
 
         echo "Finished $size $cores"
+        echo
     done
 
     # Write to CSV

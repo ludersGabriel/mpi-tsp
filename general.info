@@ -1,0 +1,69 @@
+OS Version
+lurdo@facotry:~$ lsb_release -d
+Description:	Ubuntu 20.04.6 LTS
+
+Kernel Version
+lurdo@facotry:~$ uname -r
+5.15.0-88-generic
+
+Compiler Version
+lurdo@facotry:~$ gcc --version
+gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+Copyright (C) 2019 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+CPU Info
+lurdo@facotry:~$ cat /proc/cpuinfo | grep 'model name' | uniq
+model name	: AMD Ryzen 7 5800H with Radeon Graphics
+
+Architecture:                       x86_64
+CPU op-mode(s):                     32-bit, 64-bit
+Byte Order:                         Little Endian
+Address sizes:                      48 bits physical, 48 bits virtual
+CPU(s):                             16
+On-line CPU(s) list:                0-15
+Thread(s) per core:                 2
+Core(s) per socket:                 8
+Socket(s):                          1
+NUMA node(s):                       1
+Vendor ID:                          AuthenticAMD
+CPU family:                         25
+Model:                              80
+Model name:                         AMD Ryzen 7 5800H with Radeon Graphics
+Stepping:                           0
+Frequency boost:                    enabled
+CPU MHz:                            1200.000
+CPU max MHz:                        3200,0000
+CPU min MHz:                        1200,0000
+BogoMIPS:                           6387.94
+Virtualization:                     AMD-V
+L1d cache:                          256 KiB
+L1i cache:                          256 KiB
+L2 cache:                           4 MiB
+L3 cache:                           16 MiB
+NUMA node0 CPU(s):                  0-15
+
+Commands used to disable turbo boost:
+
+echo "0" | sudo tee /sys/devices/system/cpu/cpufreq/boost
+
+for i in $(seq 0 15); do sudo cpufreq-set -c $i -g performance; done
+for i in $(seq 0 15); do sudo cpufreq-set -c $i -f 3200MHz; done
+
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 1550.644
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
+cpu MHz		: 3200.000
